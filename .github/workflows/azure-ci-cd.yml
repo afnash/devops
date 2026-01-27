@@ -2,7 +2,7 @@ name: Azure CI/CD – ACR to VM
 
 on:
   push:
-    branches: ["main"]
+    branches: ["master"]
 
 jobs:
   build-push-deploy:
