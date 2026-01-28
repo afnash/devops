@@ -1,12 +1,9 @@
 const express = require("express");
 const app = express();
 
-app.get("/health", (req, res) => {
-  res.json({ status: "OK v1" });
-});
-app.get("/", (req, res) => {
-  res.json({ message: "Hello World" });
-});
+const PORT = process.env.PORT || 3000;
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => console.log("Server running on", port));
+app.get("/", (req, res) => res.send("Hello from AKS 🚀 v1"));
+app.get("/health", (req, res) => res.json({ status: "ok", version: "v1" }));
+
+app.listen(PORT, "0.0.0.0", () => console.log("Running on " + PORT));

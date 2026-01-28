@@ -1,64 +1,38 @@
-name: Azure CI/CD – ACR to VM
+name: AKS Full CI/CD (Build -> Push -> Deploy)
 
 on:
   push:
-    branches:
-      - master
-      - main
+    branches: ["master"]
 
 jobs:
   build-push-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout source code
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      # 2️⃣ Setup Node.js
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      # 3️⃣ Install dependencies
-      - name: Install dependencies
-        run: npm install
-
-      # 4️⃣ Run tests
-      - name: Run tests
-        run: npm test
-
-      # 5️⃣ Login to Azure Container Registry (NON-INTERACTIVE)
-      - name: Login to Azure Container Registry
-        run: |
-          echo "${{ secrets.ACR_PASSWORD }}" | docker login acedevopsdemoacr.azurecr.io \
-            --username "${{ secrets.ACR_USERNAME }}" \
-            --password-stdin
-
-      # 6️⃣ Build Docker image
-      - name: Build Docker image
-        run: |
-          docker build -t acedevopsdemoacr.azurecr.io/devops:latest .
-
-      # 7️⃣ Push Docker image to ACR
-      - name: Push Docker image to ACR
-        run: |
-          docker push acedevopsdemoacr.azurecr.io/devops:latest
-
-      # 8️⃣ Login to Azure (Service Principal)
       - name: Azure Login
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # 9️⃣ Deploy on Azure VM using Run Command (FIXED)
-      - name: Deploy on Azure VM (Run Command)
-        uses: azure/CLI@v2
-        with:
-          inlineScript: |
-            az vm run-command invoke \
-              --resource-group "${{ secrets.AZURE_RG }}" \
-              --name "${{ secrets.AZURE_VM_NAME }}" \
-              --command-id RunShellScript \
-              --scripts "bash -c 'docker pull acedevopsdemoacr.azurecr.io/devops:latest && docker stop app || true && docker rm app || true && docker run -d -p 80:3000 --name app acedevopsdemoacr.azurecr.io/devops:latest'"
+      - name: Login to ACR
+        run: az acr login --name acedevopsdemoacr
+
+      - name: Build image
+        run: docker build -t acedevopsdemoacr.azurecr.io/devops:latest .
+
+      - name: Push image
+        run: docker push acedevopsdemoacr.azurecr.io/devops:latest
+
+      - name: Get AKS credentials
+        run: az aks get-credentials -g chainsure -n devops-aks --overwrite-existing
+
+      - name: Apply manifests (first time safe)
+        run: kubectl apply -f k8s/
+
+      - name: Rollout restart (force new image)
+        run: |
+          kubectl rollout restart deployment/devops-app
+          kubectl rollout status deployment/devops-app
