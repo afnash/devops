@@ -36,3 +36,19 @@ jobs:
         run: |
           kubectl rollout restart deployment/devops-app
           kubectl rollout status deployment/devops-app
+
+      - name: Verify Deployment Logs
+        run: |
+          echo "Waiting for pod to be ready..."
+          sleep 10
+
+          echo "Fetching logs from the deployment..."
+          # Get the name of a pod from the deployment
+          POD_NAME=$(kubectl get pods -l app=devops -o jsonpath="{.items[0].metadata.name}")
+          if [ -n "$POD_NAME" ]; then
+            echo "Logs for pod: $POD_NAME"
+            kubectl logs $POD_NAME --tail=50
+          else
+            echo "No pods found for deployment devops-app"
+            exit 1
+          fi
