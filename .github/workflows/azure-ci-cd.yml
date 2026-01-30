@@ -18,13 +18,13 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Login to ACR
-        run: az acr login --name acedevopsdemoacr
+        run: az acr login --name rygtusbh
 
       - name: Build image
-        run: docker build -t acedevopsdemoacr.azurecr.io/devops:latest .
+        run: docker build -t rygtusbh.azurecr.io/devops:latest .
 
       - name: Push image
-        run: docker push acedevopsdemoacr.azurecr.io/devops:latest
+        run: docker push rygtusbh.azurecr.io/devops:latest
 
       - name: Get AKS credentials
         run: az aks get-credentials -g chainsure -n devops-aks --overwrite-existing
